@@ -5,57 +5,44 @@ import (
 	"sync"
 )
 
-type LRU struct {
+type LRU interface {
+	Hit(key int) bool
+	HitOrAdd(key int)
+	SizeTo(max int) []int
+}
+
+// LinkedListLRU implements a simple LRU cache using a doubly linked list and a map.
+// It allows for O(1) time complexity for adding, deleting, and hitting keys.
+type LinkedListLRU struct {
 	aList *list.List
 	aMap  map[int]*list.Element
 	lock  sync.Mutex
 }
 
-func NewLRU() *LRU {
-	return &LRU{
+// NewLRU creates a new instance of LinkedListLRU.
+// It initializes the linked list and the map that will hold the keys and their corresponding list elements
+func NewLRU() LRU {
+	return &LinkedListLRU{
 		aList: list.New(),
 		aMap:  make(map[int]*list.Element),
 	}
 }
 
-func (lru *LRU) Add(key int) {
-	lru.lock.Lock()
-	defer lru.lock.Unlock()
-
-	lru.add(key)
-}
-
-func (lru *LRU) add(key int) {
-	element := lru.aList.PushFront(key)
-	lru.aMap[key] = element
-}
-
-func (lru *LRU) Delete(key int) {
-	lru.lock.Lock()
-	defer lru.lock.Unlock()
-
-	if elem, ok := lru.aMap[key]; ok {
-		lru.aList.Remove(elem)
-		delete(lru.aMap, key)
-	}
-}
-
-func (lru *LRU) Hit(key int) bool {
+// Hit checks if the key exists in the LRU cache.
+// If it exists, it moves the element to the front of the list to mark it as recently used.
+// It locks the cache to ensure thread safety while checking the key
+func (lru *LinkedListLRU) Hit(key int) bool {
 	lru.lock.Lock()
 	defer lru.lock.Unlock()
 
 	return lru.hit(key)
 }
 
-func (lru *LRU) hit(key int) bool {
-	element, ok := lru.aMap[key]
-	if ok {
-		lru.aList.MoveToFront(element)
-	}
-	return ok
-}
-
-func (lru *LRU) HitOrAdd(key int) {
+// HitOrAdd checks if the key exists in the LRU cache.
+// If it exists, it marks it as recently used.
+// If it does not exist, it adds the key to the cache.
+// It locks the cache to ensure thread safety while checking or adding the key.
+func (lru *LinkedListLRU) HitOrAdd(key int) {
 	lru.lock.Lock()
 	defer lru.lock.Unlock()
 
@@ -64,7 +51,12 @@ func (lru *LRU) HitOrAdd(key int) {
 	}
 }
 
-func (lru *LRU) SizeTo(max int) []int {
+// SizeTo checks the current size of the LRU cache and removes the oldest entries
+// until the size is less than or equal to the specified maximum size.
+// It returns a slice of keys that were removed from the cache.
+// It locks the cache to ensure thread safety while checking the size and removing elements.
+// If the current size is less than or equal to the maximum size, it returns an empty slice.
+func (lru *LinkedListLRU) SizeTo(max int) []int {
 	lru.lock.Lock()
 	defer lru.lock.Unlock()
 
@@ -84,9 +76,28 @@ func (lru *LRU) SizeTo(max int) []int {
 
 		key := elem.Value.(int)
 		keys = append(keys, key)
-		lru.aList.Remove(elem)
-		delete(lru.aMap, key)
+		lru.delete(key)
 	}
 
 	return keys
+}
+
+func (lru *LinkedListLRU) add(key int) {
+	element := lru.aList.PushFront(key)
+	lru.aMap[key] = element
+}
+
+func (lru *LinkedListLRU) delete(key int) {
+	if elem, ok := lru.aMap[key]; ok {
+		lru.aList.Remove(elem)
+		delete(lru.aMap, key)
+	}
+}
+
+func (lru *LinkedListLRU) hit(key int) bool {
+	element, ok := lru.aMap[key]
+	if ok {
+		lru.aList.MoveToFront(element)
+	}
+	return ok
 }
