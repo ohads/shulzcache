@@ -14,7 +14,7 @@ const (
 type CachedFunction func(param int) (string, error)
 
 type Cache interface {
-	GetIfFresh(param int) (string, bool)
+	Get(param int) (string, bool)
 	Put(param int, value string)
 }
 
@@ -36,7 +36,7 @@ func NewCachedFunctionWithCache(aFunc CachedFunction, cache Cache) CachedFunctio
 
 	newFunc := func(param int) (string, error) {
 		// fast path - try to read the value from cache.
-		val, ok := cache.GetIfFresh(param)
+		val, ok := cache.Get(param)
 		if ok {
 			return val, nil
 		}
@@ -59,7 +59,7 @@ func NewCachedFunctionWithCache(aFunc CachedFunction, cache Cache) CachedFunctio
 		}()
 
 		// try to read the value from cache again, after we acquired the lock.
-		val, ok = cache.GetIfFresh(param)
+		val, ok = cache.Get(param)
 		if ok {
 			return val, nil
 		}

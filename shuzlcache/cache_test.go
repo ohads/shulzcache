@@ -70,7 +70,7 @@ func TestConcurrentCalls(t *testing.T) {
 	cachedFunc := NewCachedFunctionWithOptions(f, 10, 10*time.Millisecond)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -145,7 +145,6 @@ func TestOldestEntriesEvicted(t *testing.T) {
 		t.Errorf("Expected entry for key 0 to be evicted, but it still exists")
 	}
 
-	t.Log("Cache:", cache.cache)
 	if _, ok := cache.cache[1]; !ok {
 		t.Errorf("Expected entry for key 1 to not be evicted, but it not exists")
 	}

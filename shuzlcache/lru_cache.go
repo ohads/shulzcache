@@ -28,10 +28,10 @@ func NewLRUCache(maxEntries int, ttl time.Duration) *LRUCache {
 	}
 }
 
-// GetIfFresh checks if the cache contains a fresh entry for the given parameter.
-// It returns the value and a boolean indicating whether the entry exist and fresh (not expired).
+// Get checks if the cache contains a fresh entry for the given parameter.
+// It returns the value and a boolean indicating whether the entry exist and not expired.
 // If the entry is not found or expired, it returns an empty string and false.
-func (c *LRUCache) GetIfFresh(param int) (string, bool) {
+func (c *LRUCache) Get(param int) (string, bool) {
 	// First, check the cache with a read lock for fast access
 	c.lock.RLock()
 	defer c.lock.RUnlock()
